@@ -43,12 +43,14 @@ stackdf <- function(...){
   for (df in list_of_dfs){
     for(var in colnames(df)){
       
+      # Check if answer is a factor and count factor levels
       if(is.factor(df[[var]])){
         fct_levels = length(levels(df[[var]]))
       } else{
         fct_levels = NA
       }
       
+      # Check if answer is numeric and if it is continuous or discrete
       if(is.numeric(df[[var]])){
         if(length(unique(df[[var]])) > 6){
           discrete = 0
@@ -59,6 +61,7 @@ stackdf <- function(...){
         discrete = NA
       }
 
+      # Add a new entry with type, class etc. for all variables the dfs
       variable_overview <- variable_overview %>% add_row(
               df_no = df_no,
               varname = var,
@@ -72,11 +75,12 @@ stackdf <- function(...){
     df_no <- df_no + 1
   }
   
+  # Sort by variable and id
   variable_overview <- variable_overview %>% arrange(varname, df_no)
-  stacked_dfs <- plyr::rbind.fill(df1, df2)
-  
+
   # Renaming variables if types don't match
-  for (var in unique(variable_overview$varname)) {
+  stacked_dfs <- plyr::rbind.fill(df1, df2)
+    for (var in unique(variable_overview$varname)) {
     print(var)
   }
   

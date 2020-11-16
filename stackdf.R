@@ -3,7 +3,7 @@
 n <- 100
 
 df1 <- data.frame(
-  var1 = sample(c("yes", "no"), size = n, replace = TRUE),
+  var1 = factor(sample(c("yes", "no", "maybe"), size = n, replace = TRUE)),
   var2 = rnorm(n = n, mean = 100, sd = 10),
   var3 = factor(sample(c("yes", "no"), size = n, replace = TRUE)),
   var4 = sample(1:5, size = n, replace = TRUE)
@@ -11,13 +11,13 @@ df1 <- data.frame(
 
 
 df2 <- data.frame(
-  var1 = sample(c("yes", "no"), size = n, replace = TRUE),
+  var1 = factor(sample(c("yes", "no"), size = n, replace = TRUE)),
   var2 = rnorm(n = n, mean = 100, sd = 10),
   var4 = sample(1:100, size = n, replace = TRUE)
   )
 
 df3 <- data.frame(
-  var1 = sample(c("yes", "no", "don't know"), size = n, replace = TRUE),
+  var1 = factor(sample(c("yes", "no"), size = n, replace = TRUE)),
   var2 = rnorm(n = n, mean = 100, sd = 10),
   var3 = factor(sample(c("yes", "no"), size = n, replace = TRUE)),
   var4 = sample(1:5, size = n, replace = TRUE)
@@ -30,13 +30,16 @@ library(plyr)
 library(tidyverse)
 
 stackdf <- function(...){
+  
   list_of_dfs <- list(...)
   variable_overview <- data.frame(df_no = NA, 
                                   varname = NA, 
                                   class = NA, 
                                   type = NA,
                                   discrete = NA,
-                                  fct_levels = NA
+                                  fct_levels = NA,
+                                  reason = NA,
+                                  rename_to = NA
                                   )
   df_no <- 1
   
@@ -76,12 +79,29 @@ stackdf <- function(...){
   }
   
   # Sort by variable and id
-  variable_overview <- variable_overview %>% arrange(varname, df_no)
+  variable_overview <- variable_overview %>% 
+    arrange(varname, df_no) %>%
+    filter(!is.na(df_no))
+  
+  variable_overview <- variable_overview %>% 
+    mutate(reason = ifelse(
+                          lag(varname, 1) == lag(varname, 0) & 
+                          lag(class, 0) == 'factor' & 
+                          lag(fct_levels, 1) != lag(fct_levels, 0),
+                          "factor levels different",
+                          reason),
+           reason = ifelse(
+             lag(varname, 1) == lag(varname, 0) & 
+               lag(class, 0) == 'numeric' & 
+               lag(discrete, 1) != lag(discrete, 0),
+             "discrete/continuous changed",
+             reason)
+           )
 
   # Renaming variables if types don't match
   stacked_dfs <- plyr::rbind.fill(df1, df2)
     for (var in unique(variable_overview$varname)) {
-    print(var)
+    
   }
   
   print(variable_overview)

@@ -1,41 +1,9 @@
-# Sample Data
-###########################################################
-n <- 10
-
-#df1 <- data.frame(
-#  var1 = factor(sample(c("yes", "no", "maybe"), size = n, replace = TRUE)),
-#  var2 = rnorm(n = n, mean = 100, sd = 10),
-#  var3 = factor(sample(c("yes", "no"), size = n, replace = TRUE)),
-#  var4 = sample(1:5, size = n, replace = TRUE)
-#  )
-
-#df2 <- data.frame(
-#  var1 = factor(sample(c("yes", "no"), size = n, replace = TRUE)),
-#  var2 = rnorm(n = n, mean = 100, sd = 10),
-#  var4 = sample(1:100, size = n, replace = TRUE)
-#  )
-
-#df3 <- data.frame(
-#  var1 = factor(sample(c("yes", "no"), size = n, replace = TRUE)),
-#  var2 = rnorm(n = n, mean = 100, sd = 10),
-#  var3 = factor(sample(c("yes", "no"), size = n, replace = TRUE)),
-#  var4 = sample(1:5, size = n, replace = TRUE)
-#)
-
-df1 <- data.frame(var1 = sample(c("a"), size = n, replace = TRUE),
-                  var2 = factor(sample(c("a", "b"), size = n, replace = TRUE)))
-df2 <- data.frame(var1 = sample(c("a", "b"), size = n, replace = TRUE),
-                  var2 = factor(sample(c("a", "b"), size = n, replace = TRUE)),
-                  var3 = "test")
-df3 <- data.frame(var1 = sample(c("a", "b", "c"), size = n, replace = TRUE),
-                  var2 = factor(sample(c("a", "b"), size = n, replace = TRUE)))
-
-# Stacking-Function
+# Stacking function
 ###########################################################
 library(plyr)
 library(tidyverse)
 
-stackdf <- function(..., .showMessages = FALSE){
+stackdf <- function(..., .showMessages = FALSE, .maxLevels = 6){
   
   list_of_dfs <- list(...)
   variable_overview <- data.frame(df_no = NA, 
@@ -58,17 +26,31 @@ stackdf <- function(..., .showMessages = FALSE){
       } else{
         fct_levels = NA
       }
-      
-      # Check if answer is a character variable and count levels
-      if(is.character(df[[var]])){
+  
+      # Check if answer is numeric and count factor levels
+      if(is.numeric(df[[var]])){
         fct_levels = length(unique(df[[var]]))
       } else{
         fct_levels = NA
       }
       
+      # Check if answer is a factor and count levels (integers)
+      if(is.factor(df[[var]])){
+        fct_levels = length(unique(df[[var]]))
+      } else{
+        fct_levels = fct_levels
+      }
+      
+      # Check if answer is a character variable and count levels
+      if(is.character(df[[var]])){
+        fct_levels = length(unique(df[[var]]))
+      } else{
+        fct_levels = fct_levels
+      }
+      
       # Check if answer is numeric and if it is continuous or discrete
-      if(is.numeric(df[[var]]) | is.character(df[[var]])){
-        if(length(unique(df[[var]])) > 6){
+      if(is.numeric(df[[var]]) | is.character(df[[var]]) | is.factor(df[[var]])){
+        if(length(unique(df[[var]])) > .maxLevels){
           discrete = 0
         } else{
           discrete = 1
@@ -162,12 +144,12 @@ stackdf <- function(..., .showMessages = FALSE){
     assign(new_varnames$df_no[i], tmp1)
   }
   
+  # Alle Dataframes zusammenfügen
   list_of_dfs2 <- list()
   for (i in 1:length(list(...))){
     list_of_dfs2[[i]] <- get(paste0("df", i))
   }
   
-  # Alle Dataframes zusammenfügen
   stacked_dfs <- plyr::rbind.fill(list_of_dfs2)
   
   # Spalten alphabetisch sortieren
@@ -176,4 +158,30 @@ stackdf <- function(..., .showMessages = FALSE){
 
 }
 
-stackdf(df1, df2, .showMessages = TRUE)
+
+# Sample data
+#########################
+
+n <- 10
+
+df1 <- data.frame(
+  var1 = sample(c("a", "b", "c", "d"), size = n, replace = TRUE),
+  var2 = runif(n, min = 0, max = 100),
+  var3 = round(runif(n, min = 1, max = 5), 0),
+  var4 = factor(sample(c("a", "b", "c", "d", "e", "f", "g", "h"), size = n, replace = TRUE))
+
+)
+
+df1
+
+# library(haven)
+# library(foreign)
+# 
+# df1 <- foreign::read.spss(file.choose(), to.data.frame=TRUE)
+# df2 <- df1
+# df2$sex <- "Test"
+
+# Call the function
+
+stackdf(df1, df1, .showMessages = TRUE, .maxLevels = 10)
+
